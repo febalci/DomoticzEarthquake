@@ -1,2 +1,2 @@
 # DomoticzEarthquake
-Gets (near) Realtime Earthquake Notifications from www.seismicportal.eu
+Gets (near) Realtime Earthquake Notifications from http://www.seismicportal.eu/realtime.html
