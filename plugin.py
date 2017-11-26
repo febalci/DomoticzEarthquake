@@ -99,7 +99,7 @@ class BasePlugin:
             Domoticz.Debug("Failed to connect ("+str(Status)+") to server with error: "+Description)
         return
 
-    def onMessage(self, Connection, Data):
+    def onMessage(self, Connection, Data, Status, Extra):
         Domoticz.Log("onMessage called")
 
         HEADER, = struct.unpack("!H", Data[:2])
@@ -211,9 +211,9 @@ def onConnect(Connection, Status, Description):
     global _plugin
     _plugin.onConnect(Connection, Status, Description)
 
-def onMessage(Connection, Data):
+def onMessage(Connection, Data, Status, Extra):
     global _plugin
-    _plugin.onMessage(Connection, Data)
+    _plugin.onMessage(Connection, Data, Status, Extra)
 
 def onCommand(Unit, Command, Level, Hue):
     global _plugin
