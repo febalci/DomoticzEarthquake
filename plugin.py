@@ -36,7 +36,6 @@ class BasePlugin:
                 "Accept-Encoding: gzip, deflate\r\n" \
                 "Sec-WebSocket-Version: 13\r\n" \
                 "Origin: http://www.seismicportal.eu\r\n" \
-                "Sec-WebSocket-Extensions: permessage-deflate\r\n" \
                 "Sec-WebSocket-Key: qqMLBxyyjz9Tog1bll7K6A==\r\n" \
                 "DNT: 1\r\n" \
                 "Connection: keep-alive, Upgrade\r\n" \
