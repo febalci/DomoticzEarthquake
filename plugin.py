@@ -1,10 +1,10 @@
 """
-<plugin key="SeismicPortal" name="Eartquake EMSC Data" author="febalci" version="1.0.0">
+<plugin key="SeismicPortal" name="Eartquake EMSC Data" author="febalci" version="1.0.1">
     <params>
-        <param field="Mode2" label="Radius1 (km)" width="150px" required="true" default="40000"/>
-        <param field="Mode3" label="Radius2 (km)" width="150px" required="true" default="50000"/>
-        <param field="Mode4" label="Min Magnitude in Radius1" width="150px" required="true" default="2"/>
-        <param field="Mode5" label="Min Magnitude in Radius2" width="150px" required="true" default="3"/>
+        <param field="Mode2" label="Radius1 (km)" width="150px" required="true" default="250"/>
+        <param field="Mode3" label="Radius2 (km)" width="150px" required="true" default="500"/>
+        <param field="Mode4" label="Min Magnitude in Radius1" width="150px" required="true" default="3.5"/>
+        <param field="Mode5" label="Min Magnitude in Radius2" width="150px" required="true" default="5"/>
         <param field="Mode6" label="Debug" width="75px">
             <options>
                 <option label="True" value="Debug"/>
@@ -19,8 +19,8 @@ import Domoticz
 import json
 from math import radians, cos, sin, asin, sqrt
 import struct
-import calendar
-from datetime import datetime, timedelta
+import time
+from datetime import datetime
 
 class BasePlugin:
     wsConn = None
@@ -98,7 +98,7 @@ class BasePlugin:
             Domoticz.Debug("Failed to connect ("+str(Status)+") to server with error: "+Description)
         return
 
-    def onMessage(self, Connection, Data, Status, Extra):
+    def onMessage(self, Connection, Data):
         Domoticz.Log("onMessage called")
 
         HEADER, = struct.unpack("!H", Data[:2])
@@ -127,8 +127,12 @@ class BasePlugin:
             lat = eqdata["data"]["properties"]["lat"]
             lon = eqdata["data"]["properties"]["lon"]
             time = eqdata["data"]["properties"]["time"]
+            Domoticz.Debug('UTC Time:'+str(time))
             time = isoutc_to_local(time)
-
+            Domoticz.Debug('Local Time:'+str(time))
+            time_stripped = str(time).split('.', 1)[0]
+            Domoticz.Debug('Local Time Stripped:'+str(time_stripped))
+            
             location = eqdata["data"]["properties"]["flynn_region"]
             distance = haversine(lat,lon,self.myHomelat,self.myHomelon)
             Domoticz.Debug ("Magnitude = "+str(mag))
@@ -157,10 +161,10 @@ class BasePlugin:
                     magnitude=3
                 else:
                     magnitude=4
-                
+
                 if eqshow:
                     Domoticz.Log(str(mag)+' - '+location)
-                    UpdateDevice(1,magnitude,str(mag)+' - '+str(int(distance))+' km - '+location+' - '+str(time))#0=gray, 1=green, 2=yellow, 3=orange, 4=red
+                    UpdateDevice(1,magnitude,str(mag)+' - '+str(int(distance))+' km - '+location+' - '+str(time_stripped))#0=gray, 1=green, 2=yellow, 3=orange, 4=red
                 
         elif Data[:2]==b'\x8a\x00':#PONG message from the server
             self.oustandingPings = self.oustandingPings - 1
@@ -210,9 +214,9 @@ def onConnect(Connection, Status, Description):
     global _plugin
     _plugin.onConnect(Connection, Status, Description)
 
-def onMessage(Connection, Data, Status, Extra):
+def onMessage(Connection, Data):
     global _plugin
-    _plugin.onMessage(Connection, Data, Status, Extra)
+    _plugin.onMessage(Connection, Data)
 
 def onCommand(Unit, Command, Level, Hue):
     global _plugin
@@ -236,7 +240,7 @@ def UpdateDevice(Unit, nValue, sValue):
     # Make sure that the Domoticz device still exists (they can be deleted) before updating it 
     if (Unit in Devices):
         if (Devices[Unit].nValue != nValue) or (Devices[Unit].sValue != sValue):
-            Devices[Unit].Update(nValue, str(sValue))
+            Devices[Unit].Update(nValue=nValue, sValue=str(sValue))
             Domoticz.Log("Update "+str(nValue)+":'"+str(sValue)+"' ("+Devices[Unit].Name+")")
     return
 
@@ -258,13 +262,13 @@ def haversine(lat1, lon1, lat2, lon2):
     km = 6367 * c
     return km 
 
+
 def isoutc_to_local(utc_dt):
-    # get integer timestamp to avoid precision lost
+    # time = 2018-02-26T18:44:41.0Z
     ztime = datetime.strptime(utc_dt, '%Y-%m-%dT%H:%M:%S.%fZ')
-    timestamp = calendar.timegm(ztime.timetuple())
-    local_dt = datetime.fromtimestamp(timestamp)
-    assert ztime.resolution >= timedelta(microseconds=1)
-    return local_dt.replace(microsecond=ztime.microsecond)
+    now_timestamp = time.time()
+    offset = datetime.fromtimestamp(now_timestamp) - datetime.utcfromtimestamp(now_timestamp)
+    return ztime + offset
 
 def DumpConfigToLog():
     for x in Parameters:
